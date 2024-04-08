@@ -13,6 +13,7 @@ import argparse
 CALENDAR_CLASS_NAME = "fc-timegrid-cols"
 SECONDS_TO_WAIT = 15
 VOLLEYBALL_CALENDAR_URL = "https://anc.ca.apm.activecommunities.com/burnaby/calendars?onlineSiteId=0&no_scroll_top=true&defaultCalendarId=10&locationId=63%2C41%2C50&displayType=0&view=2"
+SECONDS_TO_WAIT_FOR_ENROLLMENT = 60 * 30 # 30 minutes max to wait for enrollment button to appear
 
 def get_calendar_day_columns(driver):
     try:
@@ -67,9 +68,30 @@ def go_to_next_week(driver):
         print(e)
         print("\nCould not find next week button")
 
+def filter_event_buttons(event_buttons, facility_req, date_req, time_req, difficulty_req):
+    print("Finding specified event...")
+    date_filtered_events = event_buttons[date_req]
+
+    filtered_events = []
+    for event in date_filtered_events:
+        desc = event.get_dom_attribute("aria-label")
+        if facility_req in desc and time_req in desc and difficulty_req in desc:
+            filtered_events.append(event)
+
+    assert len(filtered_events) == 1, f"Invalid number of events: {len(filtered_events)}. Needs to be 1."
+
+    return filtered_events[0]
+
+def find_and_wait_on_enroll_button():
+    print("Finding enroll button...")
+
+def enroll_participant(participant_req):
+    print(f"Enrolling {participant_req}...")
+
 def main():
     print("Hello! Currently only Chrome is supported, so ensure that is installed!")
     print("To use this program, open it the day of registration before the registration time of 10:00am")
+    print("But only a maxmimum of 30 minutes before the registration period")
     print("Also ensure you are auto signed into the correct account for Burnaby's webreg!\n")
 
     """
@@ -92,11 +114,13 @@ def main():
     date_req = "2024-04-05"
     time_req = "7:30 PM"
     difficulty_req = "Intermediate"
+    participant_req = "Daniel Getz"
 
     driver = webdriver.Chrome()
     driver.get(VOLLEYBALL_CALENDAR_URL)
     driver.maximize_window()
 
+    # Assemble dates dictionary containing event buttons
     day_columns = get_calendar_day_columns(driver)
     event_buttons = get_event_buttons(driver, day_columns)
 
@@ -118,6 +142,27 @@ def main():
         print("\nExiting in 5...")
         time.sleep(5)
         exit()
+
+    # Determine event button based on inputs
+    filtered_event_button = filter_event_buttons(
+        event_buttons,
+        facility_req,
+        date_req,
+        time_req,
+        difficulty_req
+    )
+
+    # Bring up event information
+    filtered_event_button.click()
+    
+    # Find and wait on enroll button to appear then click it
+    find_and_wait_on_enroll_button()
+
+    # Handle enrolling a participant
+    enroll_participant(participant_req)
+
+
+    time.sleep(5)
 
     print(time.localtime())
     
